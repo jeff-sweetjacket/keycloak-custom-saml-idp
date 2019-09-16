@@ -8,12 +8,14 @@ import org.keycloak.saml.validators.DestinationValidator;
 
 public class CustomSamlIdentityProviderFactory extends SAMLIdentityProviderFactory {
 
+    public static final String PROVIDER_ID = "customsaml";
+
     private DestinationValidator destinationValidator;
 
 	@Override
 	public String getId() {
 		
-		return "customsaml";
+		return PROVIDER_ID;
 	}
 	
 	@Override

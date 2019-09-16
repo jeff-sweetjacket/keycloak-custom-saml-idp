@@ -1,6 +1,8 @@
 package com.sweetjacket.keycloak.idp;
 
 import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
@@ -8,7 +10,11 @@ import javax.ws.rs.core.UriInfo;
 import org.keycloak.broker.provider.AuthenticationRequest;
 import org.keycloak.broker.provider.IdentityBrokerException;
 import org.keycloak.broker.saml.SAMLIdentityProvider;
-import org.keycloak.models.KeyManager;
+import org.keycloak.crypto.Algorithm;
+import org.keycloak.crypto.KeyUse;
+import org.keycloak.crypto.KeyWrapper;
+import org.keycloak.events.EventBuilder;
+import org.keycloak.models.KeyManager.ActiveRsaKey;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.protocol.saml.JaxrsSAML2BindingBuilder;
@@ -20,9 +26,25 @@ import org.keycloak.saml.validators.DestinationValidator;
 
 public class CustomSamlIdentityProvider extends SAMLIdentityProvider {
 
+    private final DestinationValidator destinationValidator;
+
 	 public CustomSamlIdentityProvider(KeycloakSession session, CustomSamlIdentityProviderConfig config, DestinationValidator destinationValidator) {
 	        super(session, config, destinationValidator);
+	        this.destinationValidator = destinationValidator;
 	    }
+	 
+	 @Override
+	public Object callback(RealmModel realm, AuthenticationCallback callback, EventBuilder event) {
+		 
+		 System.out.println("====================================================================");
+		 System.out.println("====================================================================");
+		 System.out.println("====================================================================");
+		 System.out.println("====================================================================");
+
+	        return new CustomSamlEndpoint(realm, this, getConfig(), callback, destinationValidator);
+
+		 
+	}
 	 
 	    @Override
 	    public Response performLogin(AuthenticationRequest request) {
@@ -57,11 +79,16 @@ public class CustomSamlIdentityProvider extends SAMLIdentityProvider {
 	            boolean postBinding = getConfig().isPostBindingAuthnRequest();
 
 	            if (getConfig().isWantAuthnRequestsSigned()) {
-	                KeyManager.ActiveRsaKey keys = session.keys().getActiveRsaKey(realm);
+	            	
+	            	
+	            	 KeyWrapper key = session.keys().getActiveKey(realm, KeyUse.SIG, Algorithm.RS256);
+	            	 ActiveRsaKey activeRsaKey = new ActiveRsaKey(key.getKid(), (PrivateKey) key.getSignKey(), (PublicKey) key.getVerifyKey(), key.getCertificate());
+	            	
+//	                KeyWrapper keyWrapper = session.keys().getKey(realm, "7sydHUY6nd9DR4__gxxjR5DgbrY5VX2jWHaGIep8Lxk", KeyUse.SIG, Algorithm.RS512);
 
-	                KeyPair keypair = new KeyPair(keys.getPublicKey(), keys.getPrivateKey());
+	                KeyPair keypair = new KeyPair(activeRsaKey.getPublicKey(), activeRsaKey.getPrivateKey());
 
-	                String keyName = getConfig().getXmlSigKeyInfoKeyNameTransformer().getKeyName(keys.getKid(), keys.getCertificate());
+	                String keyName = getConfig().getXmlSigKeyInfoKeyNameTransformer().getKeyName(activeRsaKey.getKid(), activeRsaKey.getCertificate());
 	                binding.signWith(keyName, keypair);
 	                binding.signatureAlgorithm(getSignatureAlgorithm());
 	                binding.signDocument();
@@ -81,7 +108,7 @@ public class CustomSamlIdentityProvider extends SAMLIdentityProvider {
 	    }
 
 	    private String getEntityId(UriInfo uriInfo, RealmModel realm) {
-	        return realm.getName();
+	        return realm.getName() + "-cpjeff6-user-sp";
 	    }
 	 
 }

@@ -9,7 +9,7 @@
 
 	<properties>
 		<javaVersion>1.8</javaVersion>
-		<keycloakVersion>4.5.0.Final</keycloakVersion>
+		<keycloakVersion>6.0.1</keycloakVersion>
 	</properties>
 
 	<dependencies>
